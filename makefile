@@ -1,4 +1,7 @@
-# Puffertank Makefile (using uv and per-repo branches, with colors)
+# Puffertank Makefile (using uv and per‑repo branches)
+
+SHELL := /bin/bash
+.ONESHELL:
 
 # === Configuration ===
 UV            := uv
@@ -18,62 +21,68 @@ BLUE   := \033[1;34m
 .PHONY: all env clone install-internal clean help setup
 
 help:
-	@echo ""
-	@echo "$(BLUE)Usage: make <target>$(RESET)"
-	@echo ""
-	@echo "$(YELLOW)Targets:$(RESET)"
-	@echo "  $(GREEN)env$(RESET)                Create/update Python env with uv and install deps"
-	@echo "  $(GREEN)clone$(RESET)              Add or update Git subtrees for internal repos"
-	@echo "  $(GREEN)install-internal$(RESET)   Install internal repos editable via uv pip"
-	@echo "  $(GREEN)setup$(RESET)              Run env, clone, and install-internal"
-	@echo "  $(RED)clean$(RESET)                Remove env and subtrees"
-	@echo ""
+	@printf '%b\n' ""
+	@printf '%b\n' "$(BLUE)Usage: make <target>$(RESET)"
+	@printf '%b\n' ""
+	@printf '%b\n' "$(YELLOW)Targets:$(RESET)"
+	@printf '  %b%-17s%b %s\n' "$(GREEN)" "env" "$(RESET)" "Create/update Python env and install deps"
+	@printf '  %b%-17s%b %s\n' "$(GREEN)" "clone" "$(RESET)" "Add or update Git subtrees for internal repos"
+	@printf '  %b%-17s%b %s\n' "$(GREEN)" "install-internal" "$(RESET)" "Install internal repos editable via pip"
+	@printf '  %b%-17s%b %s\n' "$(GREEN)" "setup" "$(RESET)" "Run env, clone, and install-internal"
+	@printf '  %b%-17s%b %s\n' "$(RED)"   "clean" "$(RESET)" "Remove env and subtrees"
+	@printf '%b\n' ""
 
 env:
-	@echo "$(BLUE)→ Creating/updating Python virtual environment with uv...$(RESET)"
-	@$(UV) venv $(ENV_NAME) --python $(PYTH_VERSION)
-	@echo "$(BLUE)→ Installing third-party dependencies...$(RESET)"
-	@$(UV) pip install --upgrade pip
-	@$(UV) pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-	@$(UV) pip install -r requirements.txt
-	@echo "$(GREEN)✓ Environment setup complete.$(RESET)"
+	@printf '%b\n' "$(BLUE)→ Creating/updating Python virtual environment with uv...$(RESET)"
+	uv venv $(ENV_NAME) --python $(PYTH_VERSION)
+	@printf '%b\n' "$(BLUE)→ Activating virtual environment...$(RESET)"
+	. $(ENV_NAME)/bin/activate
+	@printf '%b\n' "$(BLUE)→ Installing third‑party dependencies...$(RESET)"
+	pip install --upgrade pip
+	pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+	pip install -r requirements.txt
+	@printf '%b\n' "$(GREEN)✓ Environment setup complete.$(RESET)"
 
 clone:
-	@echo "$(BLUE)→ Syncing subtrees for internal repos...$(RESET)"
+	@printf '%b\n' "$(BLUE)→ Syncing subtrees for internal repos...$(RESET)"
 	@for rb in $(REPO_BRANCHES); do \
 	  repo=$${rb%%:*}; branch=$${rb##*:}; \
-	  remote="$(GIT_BASE)/$$repo.git"; \
-	  prefix="$$repo"; \
-	  if [ ! -d $$prefix ]; then \
-	    echo "$(YELLOW)   • Adding $$repo (branch $$branch)...$(RESET)"; \
-	    git remote add $$repo $$remote 2>/dev/null || true; \
-	    git fetch $$repo; \
-	    git subtree add --prefix=$$prefix $$repo $$branch --squash; \
-	  else \
-	    echo "$(YELLOW)   • Updating $$repo (branch $$branch)...$(RESET)"; \
-	    git fetch $$repo; \
-	    git subtree pull --prefix=$$prefix $$repo $$branch --squash; \
-	  fi \
+	  prefix="$$repo"; remote="$(GIT_BASE)/$$repo.git"; \
+	  \
+	  if [ -d "$$prefix" ]; then \
+	    printf '%b   • Resetting and cleaning %s…%b\n' "$(YELLOW)" "$$prefix" "$(RESET)"; \
+	    git reset --hard HEAD -- $$prefix >/dev/null 2>&1; \
+	    git clean -fd $$prefix >/dev/null 2>&1; \
+	    printf '%b   • Removing old %s…%b\n' "$(YELLOW)" "$$prefix" "$(RESET)"; \
+	    git rm -rf $$prefix >/dev/null 2>&1 || true; \
+	    rm -rf $$prefix; \
+	  fi; \
+	  \
+	  printf '%b   • Adding %s (branch %s)...%b\n' "$(YELLOW)" "$$repo" "$$branch" "$(RESET)"; \
+	  git remote add $$repo $$remote 2>/dev/null || true; \
+	  git fetch $$repo; \
+	  git subtree add --prefix=$$prefix $$repo $$branch --squash; \
 	done
-	@echo "$(GREEN)✓ Repos synced.$(RESET)"
+	@printf '%b\n' "$(GREEN)✓ Repos synced.$(RESET)"
 
 install-internal:
-	@echo "$(BLUE)→ Installing internal packages in editable mode...$(RESET)"
+	@printf '%b\n' "$(BLUE)→ Installing internal packages in editable mode...$(RESET)"
+	@. $(ENV_NAME)/bin/activate
 	@for rb in $(REPO_BRANCHES); do \
 	  repo=$${rb%%:*}; \
-	  echo "$(YELLOW)   • uv pip install -e $$repo$(RESET)"; \
-	  $(UV) pip install -e $$repo; \
+	  printf '%b   • Installing %s…%b\n' "$(YELLOW)" "$$repo" "$(RESET)"; \
+	  pip install --editable ./$$repo; \
 	done
-	@echo "$(GREEN)✓ Internal packages installed.$(RESET)"
+	@printf '%b\n' "$(GREEN)✓ Internal packages installed.$(RESET)"
 
 setup: env clone install-internal
-	@echo "$(GREEN)✓ Puffertank full setup complete!$(RESET)"
+	@printf '%b\n' "$(GREEN)✓ Puffertank full setup complete!$(RESET)"
 
 clean:
-	@echo "$(RED)→ Cleaning up environment and subtrees...$(RESET)"
-	@rm -rf $(ENV_NAME)
+	@printf '%b\n' "$(RED)→ Cleaning up environment and subtrees...$(RESET)"
+	rm -rf $(ENV_NAME)
 	@for rb in $(REPO_BRANCHES); do \
 	  repo=$${rb%%:*}; \
 	  rm -rf $$repo; \
 	done
-	@echo "$(GREEN)✓ Cleaned.$(RESET)"
+	@printf '%b\n' "$(GREEN)✓ Cleaned.$(RESET)"
