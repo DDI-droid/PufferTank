@@ -35,13 +35,13 @@ help:
 env:
 	@printf '%b\n' "$(BLUE)→ Creating/updating Python virtual environment with uv...$(RESET)"
 	uv venv $(ENV_NAME) --python $(PYTH_VERSION)
-	@printf '%b\n' "$(BLUE)→ Activating virtual environment...$(RESET)"
-	. $(ENV_NAME)/bin/activate
-	@printf '%b\n' "$(BLUE)→ Installing third‑party dependencies...$(RESET)"
-	pip install --upgrade pip
-	pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-	pip install -r requirements.txt
-	@printf '%b\n' "$(GREEN)✓ Environment setup complete.$(RESET)"
+	# @printf '%b\n' "$(BLUE)→ Activating virtual environment...$(RESET)"
+	# . $(ENV_NAME)/bin/activate
+	# @printf '%b\n' "$(BLUE)→ Installing third‑party dependencies...$(RESET)"
+	# pip install --upgrade pip
+	# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+	# pip install -r requirements.txt
+	# @printf '%b\n' "$(GREEN)✓ Environment setup complete.$(RESET)"
 
 clone:
 	@printf '%b\n' "$(BLUE)→ Syncing subtrees for internal repos...$(RESET)"
@@ -65,17 +65,17 @@ clone:
 	done
 	@printf '%b\n' "$(GREEN)✓ Repos synced.$(RESET)"
 
-install-internal:
-	@printf '%b\n' "$(BLUE)→ Installing internal packages in editable mode...$(RESET)"
-	@. $(ENV_NAME)/bin/activate
-	@for rb in $(REPO_BRANCHES); do \
-	  repo=$${rb%%:*}; \
-	  printf '%b   • Installing %s…%b\n' "$(YELLOW)" "$$repo" "$(RESET)"; \
-	  pip install --editable ./$$repo; \
-	done
-	@printf '%b\n' "$(GREEN)✓ Internal packages installed.$(RESET)"
+# install-internal:
+# 	@printf '%b\n' "$(BLUE)→ Installing internal packages in editable mode...$(RESET)"
+# 	@. $(ENV_NAME)/bin/activate
+# 	@for rb in $(REPO_BRANCHES); do \
+# 	  repo=$${rb%%:*}; \
+# 	  printf '%b   • Installing %s…%b\n' "$(YELLOW)" "$$repo" "$(RESET)"; \
+# 	  pip install --editable ./$$repo; \
+# 	done
+# 	@printf '%b\n' "$(GREEN)✓ Internal packages installed.$(RESET)"
 
-setup: env clone install-internal
+setup: env clone
 	@printf '%b\n' "$(GREEN)✓ Puffertank full setup complete!$(RESET)"
 
 clean:
